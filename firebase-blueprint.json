@@ -1,0 +1,48 @@
+{
+  "entities": {
+    "supporter": {
+      "title": "Supporter",
+      "description": "A certified supporter who completed the Satyam Challenge.",
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "The real name of the supporter."
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "description": "Verified email of the supporter."
+        },
+        "turns": {
+          "type": "integer",
+          "description": "Number of turns/interactions taken by the user to finish the test."
+        },
+        "respectRank": {
+          "type": "string",
+          "description": "The computed or default respect rank."
+        },
+        "powerLevel": {
+          "type": "string",
+          "description": "The user's power level."
+        },
+        "rank": {
+          "type": "string",
+          "description": "Elite supporter rank identifier."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp when this record was generated."
+        }
+      },
+      "required": ["name", "email", "turns", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/supporters/{supporterId}": {
+      "schema": "supporter",
+      "description": "Global collection mapping of certified true believers."
+    }
+  }
+}

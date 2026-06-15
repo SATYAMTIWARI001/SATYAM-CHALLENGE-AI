@@ -1,0 +1,6 @@
+{
+  "name": "The Satyam Challenge",
+  "description": "Premium High-Fidelity Interactive Joke Challenge. Can you pass all levels without disagreeing with Satyam?",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

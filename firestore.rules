@@ -1,0 +1,61 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global default catch-all - safety net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Primitive Security Helpers
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    // Main collection validators
+    function isValidSupporter(data) {
+      return data.keys().hasAll(['name', 'email', 'turns', 'createdAt'])
+        && data.keys().size() <= 8
+        && data.name is string
+        && data.name.size() > 0
+        && data.name.size() <= 100
+        && data.email is string
+        && data.email.size() > 0
+        && data.email.size() <= 150
+        && data.turns is int
+        && data.turns >= 1
+        && data.respectRank is string
+        && data.respectRank.size() <= 50
+        && data.powerLevel is string
+        && data.powerLevel.size() <= 50
+        && data.rank is string
+        && data.rank.size() <= 50
+        && data.createdAt == request.time;
+    }
+
+    match /supporters/{supporterId} {
+      // Allow reading list of participants directly
+      allow list: if true;
+      allow get: if true;
+
+      // Allow creating public records when completing the challenge
+      allow create: if isValidId(supporterId) && isValidSupporter(incoming());
+
+      // Supporters are terminal database entries, no edits are permitted after creation to maintain certificate integrity
+      allow update: if false;
+      allow delete: if false;
+    }
+  }
+}
