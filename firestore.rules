@@ -26,10 +26,10 @@ service cloud.firestore {
 
     // Main collection validators
     function isValidSupporter(data) {
-      return data.keys().hasAll(['name', 'email', 'turns', 'createdAt'])
-        && data.keys().size() <= 8
+      return data.keys().hasAll(['name', 'email', 'turns', 'createdAt', 'score', 'completedAt', 'certificateId'])
+        && data.keys().size() <= 12
         && data.name is string
-        && data.name.size() > 0
+        && data.name.size() >= 2
         && data.name.size() <= 100
         && data.email is string
         && data.email.size() > 0
@@ -42,6 +42,12 @@ service cloud.firestore {
         && data.powerLevel.size() <= 50
         && data.rank is string
         && data.rank.size() <= 50
+        && data.score is int
+        && data.score >= 0
+        && data.completedAt is string
+        && data.completedAt.size() <= 100
+        && data.certificateId is string
+        && data.certificateId.size() <= 100
         && data.createdAt == request.time;
     }
 

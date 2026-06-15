@@ -30,13 +30,26 @@
           "type": "string",
           "description": "Elite supporter rank identifier."
         },
+        "score": {
+          "type": "integer",
+          "description": "Completion score value."
+        },
+        "completedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Completion timestamp string."
+        },
+        "certificateId": {
+          "type": "string",
+          "description": "Unique generated certificate ID."
+        },
         "createdAt": {
           "type": "string",
           "format": "date-time",
           "description": "Timestamp when this record was generated."
         }
       },
-      "required": ["name", "email", "turns", "createdAt"]
+      "required": ["name", "email", "turns", "createdAt", "score", "completedAt", "certificateId"]
     }
   },
   "firestore": {
