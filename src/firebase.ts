@@ -20,8 +20,9 @@ import firebaseConfig from '../firebase-applet-config.json';
 const app = initializeApp(firebaseConfig);
 
 // Initialize Firestore
-// CRITICAL: Must use the firestoreDatabaseId from the configuration or fallback
-export const db = getFirestore(app, (firebaseConfig as any).firestoreDatabaseId);
+// CRITICAL: Must use the firestoreDatabaseId from the configuration if available, otherwise default
+const databaseId = (firebaseConfig as any).firestoreDatabaseId;
+export const db = databaseId ? getFirestore(app, databaseId) : getFirestore(app);
 
 // Initialize Auth
 export const auth = getAuth(app);

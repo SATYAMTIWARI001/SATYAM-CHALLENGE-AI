@@ -4,20 +4,28 @@
 class SoundEngine {
   private ctx: AudioContext | null = null;
 
-  private initCtx(): AudioContext {
-    if (!this.ctx) {
-      this.ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+  private initCtx(): AudioContext | null {
+    if (typeof window === 'undefined') return null;
+    const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AudioContextClass) return null;
+    try {
+      if (!this.ctx) {
+        this.ctx = new AudioContextClass();
+      }
+      if (this.ctx.state === 'suspended') {
+        this.ctx.resume();
+      }
+      return this.ctx;
+    } catch (e) {
+      return null;
     }
-    if (this.ctx.state === 'suspended') {
-      this.ctx.resume();
-    }
-    return this.ctx;
   }
 
   // Synthesize a quick cute bubble pop on hover
   public playHover() {
     try {
       const ctx = this.initCtx();
+      if (!ctx) return;
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
 
@@ -43,6 +51,7 @@ class SoundEngine {
   public playClick() {
     try {
       const ctx = this.initCtx();
+      if (!ctx) return;
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
 
@@ -65,6 +74,7 @@ class SoundEngine {
   public playEscape() {
     try {
       const ctx = this.initCtx();
+      if (!ctx) return;
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
 
@@ -88,6 +98,7 @@ class SoundEngine {
   public playBlink() {
     try {
       const ctx = this.initCtx();
+      if (!ctx) return;
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
 
@@ -111,6 +122,7 @@ class SoundEngine {
   public playShake() {
     try {
       const ctx = this.initCtx();
+      if (!ctx) return;
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
 
@@ -133,6 +145,7 @@ class SoundEngine {
   public playAchievement() {
     try {
       const ctx = this.initCtx();
+      if (!ctx) return;
       const now = ctx.currentTime;
       const notes = [523.25, 659.25, 783.99, 1046.50]; // C5, E5, G5, C6
 
@@ -159,6 +172,7 @@ class SoundEngine {
   public playTriumph() {
     try {
       const ctx = this.initCtx();
+      if (!ctx) return;
       const now = ctx.currentTime;
       // Synthesize a brassy majestic fan-fare!
       const chords = [

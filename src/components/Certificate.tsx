@@ -1,6 +1,6 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Award, Sparkles, Trophy, Check, Share2, Twitter, Linkedin, MessageCircle, FileDown, ShieldCheck, Zap, Mail, ArrowRight, ShieldAlert } from 'lucide-react';
+import { Award, Sparkles, Trophy, Check, Share2, Twitter, Linkedin, MessageCircle, FileDown, ShieldCheck, Zap, Mail, ArrowRight, ShieldAlert, X, Download, Smartphone, Image } from 'lucide-react';
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
 import { signInWithGoogleGmail, sendCertificateEmail, cachedAccessToken, authenticatedUser } from '../firebase';
@@ -85,6 +85,18 @@ export default function Certificate({ name, email = 'satyam000108@gmail.com', tu
   const [downloading, setDownloading] = useState(false);
   const [downloadSuccess, setDownloadSuccess] = useState(false);
 
+  // Mobile compatibility states
+  const [isMobile, setIsMobile] = useState(false);
+  const [mobileModalOpen, setMobileModalOpen] = useState(false);
+  const [generatedImgUrl, setGeneratedImgUrl] = useState<string | null>(null);
+  const [downloadingImage, setDownloadingImage] = useState(false);
+  const [imageDownloadSuccess, setImageDownloadSuccess] = useState(false);
+  const [sharingNative, setSharingNative] = useState(false);
+
+  useEffect(() => {
+    setIsMobile(/iPhone|iPad|iPod|Android/i.test(navigator.userAgent));
+  }, []);
+
   // Gmail states
   const [gmailAuthorized, setGmailAuthorized] = useState(!!cachedAccessToken);
   const [sendingEmail, setSendingEmail] = useState(false);
@@ -102,40 +114,384 @@ export default function Certificate({ name, email = 'satyam000108@gmail.com', tu
   // Use the provided certificateId or fallback to a persistent pseudo-random one
   const finalCertId = certificateId || `SATYAM-2026-${String(turns).padStart(2, '0')}-${name.replace(/\s+/g, '').slice(0, 3).toUpperCase() || 'BEL'}-${Math.floor(10000 + Math.random() * 90000)}`;
 
+  // Pure Canvas-based premium drawing for ultra-high-resolution output inside Sandboxed IFrames
+  const drawDynamicCertificate = (canvas: HTMLCanvasElement) => {
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const w = 2100;
+    const h = 1485; // Perfectly matches A4 ratio
+    canvas.width = w;
+    canvas.height = h;
+
+    const safeRoundRect = (cx: CanvasRenderingContext2D, x: number, y: number, rw: number, rh: number, r: number) => {
+      if (typeof cx.roundRect === 'function') {
+        cx.roundRect(x, y, rw, rh, r);
+      } else {
+        cx.beginPath();
+        cx.moveTo(x + r, y);
+        cx.lineTo(x + rw - r, y);
+        cx.quadraticCurveTo(x + rw, y, x + rw, y + r);
+        cx.lineTo(x + rw, y + rh - r);
+        cx.quadraticCurveTo(x + rw, y + rh, x + rw - r, y + rh);
+        cx.lineTo(x + r, y + rh);
+        cx.quadraticCurveTo(x, y + rh, x, y + rh - r);
+        cx.lineTo(x, y + r);
+        cx.quadraticCurveTo(x, y, x + r, y);
+        cx.closePath();
+      }
+    };
+
+    // 1. Rich dark background with radial cosmic glow
+    const bgGrad = ctx.createRadialGradient(w/2, h/2, 200, w/2, h/2, w*0.75);
+    bgGrad.addColorStop(0, '#120936');
+    bgGrad.addColorStop(0.6, '#080517');
+    bgGrad.addColorStop(1, '#04020a');
+    ctx.fillStyle = bgGrad;
+    ctx.fillRect(0, 0, w, h);
+
+    // 2. High-Fidelity gold metallic borders
+    const goldGrad = ctx.createLinearGradient(0, 0, w, h);
+    goldGrad.addColorStop(0, '#dbaf42');
+    goldGrad.addColorStop(0.25, '#f9e19d');
+    goldGrad.addColorStop(0.5, '#b88a1b');
+    goldGrad.addColorStop(0.75, '#f5df83');
+    goldGrad.addColorStop(1, '#a87208');
+
+    // Solid outer border
+    ctx.lineWidth = 14;
+    ctx.strokeStyle = goldGrad;
+    ctx.strokeRect(25, 25, w - 50, h - 50);
+
+    // Inset border
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = 'rgba(219, 175, 66, 0.45)';
+    ctx.strokeRect(42, 42, w - 84, h - 84);
+
+    // Dashed inner border lines
+    ctx.lineWidth = 2;
+    ctx.setLineDash([16, 12]);
+    ctx.strokeStyle = 'rgba(219, 175, 66, 0.65)';
+    ctx.strokeRect(55, 55, w - 110, h - 110);
+    ctx.setLineDash([]); // Reset line dash
+
+    // 3. Diagonal repeating watermarks
+    ctx.save();
+    ctx.translate(w/2, h/2);
+    ctx.rotate(-15 * Math.PI / 180);
+    ctx.fillStyle = 'rgba(251, 191, 36, 0.018)';
+    ctx.font = 'bold 26px monospace';
+    ctx.textAlign = 'center';
+    for (let y = -900; y <= 900; y += 140) {
+      ctx.fillText('VERIFIED BY SATYAM TIWARI • SECURED ARCHIVE CREDENTIAL • VERIFIED BY SATYAM TIWARI', 0, y);
+      ctx.fillText('OFFICIAL ELITE STATUS CERTIFICATE • VERIFIED BY SATYAM TIWARI • OFFICIAL ELITE STATUS', 100, y + 70);
+    }
+    ctx.restore();
+
+    // Central background Crown symbol watermark
+    ctx.save();
+    ctx.font = '450px Arial';
+    ctx.fillStyle = 'rgba(251, 191, 36, 0.025)';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('👑', w/2, h/2 - 10);
+    ctx.restore();
+
+    // Traditional ornamental corner accents
+    const drawCornerOrnament = (cx: number, cy: number, rx: number, ry: number) => {
+      ctx.save();
+      ctx.strokeStyle = 'rgba(219, 175, 66, 0.85)';
+      ctx.lineWidth = 8;
+      ctx.beginPath();
+      ctx.moveTo(cx + rx, cy);
+      ctx.lineTo(cx, cy);
+      ctx.lineTo(cx, cy + ry);
+      ctx.stroke();
+      ctx.restore();
+    };
+    const cLen = 120;
+    drawCornerOrnament(80, 80, cLen, cLen);
+    drawCornerOrnament(w - 80, 80, -cLen, cLen);
+    drawCornerOrnament(80, h - 80, cLen, -cLen);
+    drawCornerOrnament(w - 80, h - 80, -cLen, -cLen);
+
+    // 4. Header Badge (Elite Credential System)
+    ctx.save();
+    const badgeText = 'ELITE CREDENTIAL VERIFICATION SYSTEM';
+    ctx.font = '900 24px monospace';
+    const bW = ctx.measureText(badgeText).width + 85;
+    const bH = 58;
+    const bY = 125;
+
+    ctx.fillStyle = 'rgba(219, 175, 66, 0.12)';
+    ctx.strokeStyle = 'rgba(219, 175, 66, 0.55)';
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    safeRoundRect(ctx, w/2 - bW/2, bY, bW, bH, 29);
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.fillStyle = '#fbbf24';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('🏆  ' + badgeText, w/2, bY + bH/2);
+    ctx.restore();
+
+    // 5. Header Brand Title
+    ctx.save();
+    ctx.textAlign = 'center';
+    ctx.fillStyle = goldGrad;
+    ctx.shadowColor = 'rgba(219, 175, 66, 0.35)';
+    ctx.shadowBlur = 12;
+    ctx.font = 'bold 82px Georgia, serif';
+    ctx.fillText('Certificate of Elite Support', w/2, 285);
+    ctx.restore();
+
+    // Secure Registry Sequence ID
+    ctx.save();
+    ctx.textAlign = 'center';
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.45)';
+    ctx.font = '300 italic 24px monospace';
+    ctx.fillText('SECURED REGISTRY SEQUENCE: ', w/2 - 145, 350);
+    ctx.fillStyle = '#fbbf24';
+    ctx.font = 'bold 24px monospace';
+    ctx.fillText(finalCertId, w/2 + 185, 350);
+    ctx.restore();
+
+    // 6. Presented To Section
+    ctx.save();
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#dbaf42';
+    ctx.font = 'italic 28px Georgia, serif';
+    ctx.fillText('This honorary document is officially presented to:', w/2, 455);
+
+    // Aura effect under name
+    const aura = ctx.createRadialGradient(w/2, 565, 5, w/2, 565, 300);
+    aura.addColorStop(0, 'rgba(219, 175, 66, 0.1)');
+    aura.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = aura;
+    ctx.beginPath();
+    ctx.arc(w/2, 565, 300, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Massive Glowing Supporter Name
+    const nameGrad = ctx.createLinearGradient(w/2 - 400, 0, w/2 + 400, 0);
+    nameGrad.addColorStop(0, '#ffffff');
+    nameGrad.addColorStop(0.5, '#fef08a');
+    nameGrad.addColorStop(1, '#fef3c7');
+    ctx.fillStyle = nameGrad;
+    ctx.shadowColor = 'rgba(251, 191, 36, 0.45)';
+    ctx.shadowBlur = 24;
+    ctx.font = 'bold italic 94px Georgia, serif';
+    ctx.fillText(name || 'Satyam Supporter', w/2, 575);
+    ctx.shadowBlur = 0; // Reset
+
+    // Elegant golden divider line
+    const lineGrad = ctx.createLinearGradient(w/2 - 350, 0, w/2 + 350, 0);
+    lineGrad.addColorStop(0, 'rgba(219, 175, 66, 0)');
+    lineGrad.addColorStop(0.5, 'rgba(219, 175, 66, 0.95)');
+    lineGrad.addColorStop(1, 'rgba(219, 175, 66, 0)');
+    ctx.fillStyle = lineGrad;
+    ctx.fillRect(w/2 - 350, 608, 700, 4);
+    ctx.restore();
+
+    // 7. Core Description Paragraphs
+    ctx.save();
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#cbd5e1';
+    ctx.font = '26px sans-serif';
+    const dY = 675;
+    const lH = 40;
+    ctx.fillText('who has successfully passed every logic-defying stage of The Satyam Challenge with divine trust', w/2, dY);
+    ctx.fillText('& absolute perseverance. They have formally established their immortal loyalty and been verified', w/2, dY + lH);
+    ctx.fillText('as an elite advocate in the sacred archives of creator Satyam Tiwari.', w/2, dY + lH * 2);
+    ctx.restore();
+
+    // 8. Stats Area (Rank, Score, integrity)
+    const sY = 855;
+    const boxW = 340;
+    const boxH = 145;
+    const sGap = 50;
+    const stX = w/2 - (boxW * 3 + sGap * 2) / 2;
+
+    const drawDataBox = (x: number, label: string, val: string, strokeCol: string, valCol: string) => {
+      ctx.save();
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.025)';
+      ctx.strokeStyle = strokeCol;
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      safeRoundRect(ctx, x, sY, boxW, boxH, 20);
+      ctx.fill();
+      ctx.stroke();
+
+      // Top label
+      ctx.fillStyle = '#64748b';
+      ctx.font = 'bold 18px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText(label, x + boxW/2, sY + 48);
+
+      // Value
+      ctx.fillStyle = valCol;
+      ctx.font = 'bold 31px monospace';
+      ctx.fillText(val, x + boxW/2, sY + 102);
+      ctx.restore();
+    };
+
+    drawDataBox(stX, 'POWER LEVEL', '9999+', 'rgba(168, 85, 247, 0.25)', '#c084fc');
+    drawDataBox(stX + boxW + sGap, 'INTEGRITY', '100% SECURE', 'rgba(16, 185, 129, 0.25)', '#34d399');
+    drawDataBox(stX + (boxW + sGap) * 2, 'RANK', 'ELITE SUPPORTER', 'rgba(219, 175, 66, 0.25)', '#f59e0b');
+
+    // 9. QR Seal Verification Blocks
+    const qrX = w - 380;
+    const qrY = 1055;
+    const qrS = 190;
+
+    ctx.save();
+    ctx.fillStyle = 'rgba(219, 175, 66, 0.04)';
+    ctx.strokeStyle = 'rgba(219, 175, 66, 0.35)';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    safeRoundRect(ctx, qrX, qrY, qrS, qrS, 18);
+    ctx.fill();
+    ctx.stroke();
+
+    // QR blocks
+    const matrix = 15;
+    const sizeDot = qrS / matrix;
+    let qrHash = 0;
+    for (let i = 0; i < finalCertId.length; i++) {
+      qrHash = finalCertId.charCodeAt(i) + ((qrHash << 5) - qrHash);
+    }
+    ctx.fillStyle = '#fbbf24';
+    for (let r = 0; r < matrix; r++) {
+      for (let c = 0; c < matrix; c++) {
+        const isTopLeft = r < 5 && c < 5;
+        const isTopRight = r < 5 && c >= matrix - 5;
+        const isBottomLeft = r >= matrix - 5 && c < 5;
+        let cellOn = false;
+
+        if (isTopLeft || isTopRight || isBottomLeft) {
+          const lr = isTopLeft ? r : isTopRight ? r : r - (matrix - 5);
+          const lc = isTopLeft ? c : isTopRight ? c - (matrix - 5) : c;
+          const isBorder = lr === 0 || lr === 4 || lc === 0 || lc === 4;
+          const isCore = lr >= 2 && lr <= 2 && lc >= 2 && lc <= 2;
+          cellOn = isBorder || isCore;
+        } else {
+          const isAlign = r >= matrix - 4 && r <= matrix - 2 && c >= matrix - 4 && c <= matrix - 2;
+          if (isAlign) {
+            const ar = r - (matrix - 4);
+            const ac = c - (matrix - 4);
+            cellOn = ar === 0 || ar === 2 || ac === 0 || ac === 2 || (ar === 1 && ac === 1);
+          } else {
+            const bit = r * matrix + c;
+            const val = ((Math.abs(qrHash) >> (bit % 31)) & 1) === 1;
+            const isTime = r === 6 || c === 6;
+            cellOn = isTime ? (bit % 2 === 0) : val;
+          }
+        }
+
+        if (cellOn) {
+          ctx.fillRect(qrX + c * sizeDot + 1, qrY + r * sizeDot + 1, sizeDot - 1.2, sizeDot - 1.2);
+        }
+      }
+    }
+    ctx.restore();
+
+    // 10. Footer info details
+    ctx.save();
+    ctx.textAlign = 'left';
+    const fY = 1085;
+    ctx.fillStyle = '#dbaf42';
+    ctx.font = '900 19px monospace';
+    ctx.fillText('CANDIDATE ACCOUNT', 150, fY);
+    ctx.fillStyle = '#e2e8f0';
+    ctx.font = '500 23px monospace';
+    ctx.fillText(userEmail, 150, fY + 36);
+
+    ctx.fillStyle = '#64748b';
+    ctx.font = '900 19px monospace';
+    ctx.fillText('TIMESTAMP SECURED', 150, fY + 98);
+    ctx.fillStyle = '#fbbf24';
+    ctx.font = '500 23px monospace';
+    ctx.fillText(currentDate, 150, fY + 132);
+    ctx.restore();
+
+    // 11. Issuing hand-signed block
+    ctx.save();
+    ctx.textAlign = 'right';
+    const sX = qrX - 50;
+    ctx.fillStyle = '#c084fc';
+    ctx.font = '900 19px monospace';
+    ctx.fillText('ISSUING AUTHORITY', sX, fY);
+
+    // Calligraphy signature
+    ctx.fillStyle = '#fbbf24';
+    ctx.font = 'italic bold 42px Georgia, serif';
+    ctx.fillText('Satyam Tiwari', sX - 70, fY + 48);
+
+    // Dynamic CEL Badge
+    ctx.fillStyle = 'rgba(251, 191, 36, 0.12)';
+    ctx.strokeStyle = 'rgba(251, 191, 36, 0.4)';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    safeRoundRect(ctx, sX - 60, fY + 16, 60, 36, 6);
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = '#fbbf24';
+    ctx.font = '900 19px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('CEL', sX - 30, fY + 40);
+
+    // Line
+    const sLine = ctx.createLinearGradient(sX - 320, 0, sX, 0);
+    sLine.addColorStop(0, 'rgba(251,191,36,0)');
+    sLine.addColorStop(1, 'rgba(251,191,36,0.5)');
+    ctx.fillStyle = sLine;
+    ctx.fillRect(sX - 280, fY + 70, 280, 2.5);
+
+    ctx.textAlign = 'right';
+    ctx.fillStyle = '#64748b';
+    ctx.font = '20px sans-serif';
+    ctx.fillText('Supreme Leader of Satyam Empire Inc.', sX, fY + 102);
+    ctx.restore();
+
+    // System banner logo bottom
+    ctx.save();
+    ctx.fillStyle = 'rgba(255,255,255,0.05)';
+    ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    safeRoundRect(ctx, 150, h - 150, 350, 42, 21);
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = '#94a3b8';
+    ctx.font = 'bold 16px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('✨ SECURED SYSTEM VERIFICATION', 325, h - 124);
+    ctx.restore();
+  };
+
   const triggerPDFDownload = async () => {
-    if (!certificateRef.current || downloading) return;
+    if (downloading) return;
     setDownloading(true);
     
     try {
-      await new Promise(resolve => setTimeout(resolve, 200));
-      const element = certificateRef.current;
+      // Yield thread to let the spinner render
+      await new Promise(resolve => setTimeout(resolve, 50));
+
+      const canvas = document.createElement('canvas');
+      drawDynamicCertificate(canvas);
       
-      const canvas = await html2canvas(element, {
-        backgroundColor: '#0a051d',
-        useCORS: true,
-        scale: 2.2, // Ultra High DPI capture for crispness
-        logging: false,
-        allowTaint: false,
-        onclone: (clonedDoc) => {
-          const cloneContainer = clonedDoc.querySelector('#certificate-capture-container');
-          if (cloneContainer) {
-            (cloneContainer as HTMLElement).style.transform = 'none';
-          }
-        }
-      });
-      
-      const imgData = canvas.toDataURL('image/png');
+      const imgData = canvas.toDataURL('image/jpeg', 0.95);
       
       const pdf = new jsPDF({
         orientation: 'landscape',
         unit: 'mm',
         format: 'a4',
+        compress: true
       });
       
-      const pdfWidth = 297;
-      const pdfHeight = 210;
-      
-      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+      pdf.addImage(imgData, 'JPEG', 0, 0, 297, 210);
       pdf.save(`Official_Certified_Elite_Satyam_Supporter_${name.trim().replace(/\s+/g, '_') || 'Believer'}.pdf`);
       
       setDownloadSuccess(true);
@@ -144,6 +500,87 @@ export default function Certificate({ name, email = 'satyam000108@gmail.com', tu
       console.error('Failed to generate secure PDF certificate:', err);
     } finally {
       setDownloading(false);
+    }
+  };
+
+  const triggerImageDownload = async () => {
+    if (downloadingImage) return;
+    setDownloadingImage(true);
+    
+    try {
+      // Yield thread
+      await new Promise(resolve => setTimeout(resolve, 50));
+
+      const canvas = document.createElement('canvas');
+      drawDynamicCertificate(canvas);
+      
+      const imgData = canvas.toDataURL('image/png');
+      setGeneratedImgUrl(imgData);
+      
+      if (isMobile) {
+        setMobileModalOpen(true);
+      } else {
+        const link = document.createElement('a');
+        link.download = `Official_Certified_Elite_Satyam_Supporter_${name.trim().replace(/\s+/g, '_') || 'Believer'}.png`;
+        link.href = imgData;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        setImageDownloadSuccess(true);
+        setTimeout(() => setImageDownloadSuccess(false), 3000);
+      }
+    } catch (err) {
+      console.error('Failed to generate secure PNG certificate:', err);
+    } finally {
+      setDownloadingImage(false);
+    }
+  };
+
+  const triggerNativeShare = async () => {
+    if (sharingNative) return;
+    setSharingNative(true);
+    try {
+      const canvas = document.createElement('canvas');
+      drawDynamicCertificate(canvas);
+      
+      canvas.toBlob(async (blob) => {
+        if (!blob) {
+          setSharingNative(false);
+          return;
+        }
+        const file = new File([blob], `Certificate_Elite_Supporter.png`, { type: 'image/png' });
+        
+        try {
+          if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+            await navigator.share({
+              files: [file],
+              title: 'Official Elite Supporter Certificate',
+              text: `👑 I officially completed "The Satyam Challenge" and became a Certified Elite Supporter! Checked & verified by Satyam Tiwari! Check it out:`,
+            });
+          } else if (navigator.share) {
+            await navigator.share({
+              title: 'Official Elite Supporter Certificate',
+              text: `👑 I officially completed "The Satyam Challenge" and became a Certified Elite Supporter! Checked & verified by Satyam Tiwari! Check it out:`,
+              url: window.location.origin
+            });
+          } else {
+            console.warn('Native sharing not supported in this browser environment');
+          }
+        } catch (shareErr) {
+          console.error('Active browser or sandbox policy blocked sharing:', shareErr);
+          // Graceful fallback copy reference link
+          try {
+            await navigator.clipboard.writeText(`👑 I officially completed "The Satyam Challenge"! Check it out: ${window.location.origin}`);
+          } catch (clipErr) {
+            console.warn('Clipboard write block: ', clipErr);
+          }
+        } finally {
+          setSharingNative(false);
+        }
+      }, 'image/png');
+    } catch (err) {
+      console.warn('Native share canvas or initialization error: ', err);
+      setSharingNative(false);
     }
   };
 
@@ -189,7 +626,18 @@ export default function Certificate({ name, email = 'satyam000108@gmail.com', tu
     } else if (platform === 'linkedin') {
       url = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(window.location.origin)}`;
     }
-    window.open(url, '_blank');
+    
+    try {
+      window.open(url, '_blank');
+    } catch (openErr) {
+      console.warn('Opening window blocked by sandbox policy:', openErr);
+      // Fallback: copy layout share URL to clipboard
+      try {
+        navigator.clipboard.writeText(url);
+      } catch (clipboardErr) {
+        console.warn('Clipboard fallback blocked:', clipboardErr);
+      }
+    }
   };
 
   return (
@@ -367,33 +815,55 @@ export default function Certificate({ name, email = 'satyam000108@gmail.com', tu
       {/* Action Tray */}
       <div className="w-full max-w-md flex flex-col gap-4">
         
-        {/* Real PDF trigger button */}
-        <motion.button
-          onClick={triggerPDFDownload}
-          disabled={downloading}
-          className={`w-full py-4 px-6 rounded-2xl font-black uppercase text-xs tracking-widest flex items-center justify-center gap-2.5 transition-all cursor-pointer border ${
-            downloadSuccess
-              ? 'bg-emerald-500/20 border-emerald-500/30 text-emerald-400 shadow-[0_0_20px_rgba(16,185,129,0.3)]'
-              : 'bg-gradient-to-r from-yellow-500 via-amber-500 to-yellow-600 hover:from-yellow-400 hover:to-amber-400 border-yellow-400/20 text-slate-950 shadow-[0_0_25px_rgba(245,158,11,0.3)] active:scale-[0.98]'
-          }`}
-        >
-          {downloading ? (
-            <>
-              <div className="w-4 h-4 border-2 border-slate-950 border-t-transparent rounded-full animate-spin" />
-              Compiling Secure PDF Document...
-            </>
-          ) : downloadSuccess ? (
-            <>
-              <Check className="w-4.5 h-4.5" />
-              Certificate Downloaded! (.PDF)
-            </>
-          ) : (
-            <>
-              <FileDown className="w-5 h-5" />
-              📥 Download PDF Certificate
-            </>
-          )}
-        </motion.button>
+        {/* Core Multi-Format Download Options */}
+        <div className="grid grid-cols-2 gap-3">
+          {/* PDF Certificate Document option */}
+          <motion.button
+            onClick={triggerPDFDownload}
+            disabled={downloading || downloadingImage}
+            className={`py-3.5 px-4 rounded-xl font-black uppercase text-[10.5px] tracking-widest flex items-center justify-center gap-2 transition-all cursor-pointer border ${
+              downloadSuccess
+                ? 'bg-emerald-500/20 border-emerald-500/35 text-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.25)]'
+                : 'bg-indigo-950/40 hover:bg-indigo-900/50 border-[#dbaf42]/30 text-yellow-300 shadow-[0_0_15px_rgba(219,175,66,0.06)] active:scale-[0.98]'
+            }`}
+          >
+            {downloading ? (
+              <div className="w-3.5 h-3.5 border-2 border-yellow-300 border-t-transparent rounded-full animate-spin" />
+            ) : downloadSuccess ? (
+              <Check className="w-3.5 h-3.5 text-emerald-450" />
+            ) : (
+              <FileDown className="w-4 h-4 text-[#dbaf42]" />
+            )}
+            {downloading ? 'Compiling...' : downloadSuccess ? 'PDF Saved!' : 'Get PDF Doc'}
+          </motion.button>
+
+          {/* PNG Certificate Image option (Flawless mobile save bypass) */}
+          <motion.button
+            onClick={triggerImageDownload}
+            disabled={downloading || downloadingImage}
+            className={`py-3.5 px-4 rounded-xl font-black uppercase text-[10.5px] tracking-widest flex items-center justify-center gap-2 transition-all cursor-pointer border ${
+              imageDownloadSuccess
+                ? 'bg-emerald-500/20 border-emerald-500/35 text-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.25)]'
+                : 'bg-gradient-to-r from-yellow-500 via-amber-500 to-yellow-600 hover:from-yellow-400 hover:to-amber-500 border-yellow-400/20 text-slate-950 shadow-[0_0_20px_rgba(245,158,11,0.25)] active:scale-[0.98]'
+            }`}
+          >
+            {downloadingImage ? (
+              <div className="w-3.5 h-3.5 border-2 border-slate-950 border-t-transparent rounded-full animate-spin" />
+            ) : imageDownloadSuccess ? (
+              <Check className="w-3.5 h-3.5 text-slate-950" />
+            ) : (
+              <Download className="w-4 h-4 text-slate-950" />
+            )}
+            {downloadingImage ? 'Rendering...' : imageDownloadSuccess ? 'Image Saved!' : isMobile ? '⚡ Get Image (Mobile)' : 'Save Photo (PNG)'}
+          </motion.button>
+        </div>
+
+        {/* Dynamic Helpful Mobile Instruction Tag */}
+        {isMobile && (
+          <p className="text-[10px] text-amber-200/60 text-center -mt-1 font-mono tracking-wide">
+            💡 Tap <span className="text-yellow-400 font-bold">"Get Image"</span> for the Mobile Save Assistant - it bypasses in-app browser blocks!
+          </p>
+        )}
 
         {/* Gmail API emailing portal */}
         <div className="w-full bg-[#0b081e]/60 border border-purple-500/20 rounded-2xl p-4 flex flex-col gap-3">
@@ -517,6 +987,97 @@ export default function Certificate({ name, email = 'satyam000108@gmail.com', tu
           </div>
         </div>
       </div>
+
+      {/* MOBILE SAVE ASSISTANT OVERLAY MODAL */}
+      <AnimatePresence>
+        {mobileModalOpen && generatedImgUrl && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex flex-col items-center justify-center p-4 bg-slate-950/95 backdrop-blur-md overflow-y-auto"
+          >
+            <div className="absolute top-4 right-4 z-55">
+              <button
+                onClick={() => setMobileModalOpen(false)}
+                className="p-3 rounded-full bg-white/10 hover:bg-white/20 border border-white/10 text-white transition-all cursor-pointer active:scale-90"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="w-full max-w-sm flex flex-col gap-4 text-center my-auto py-6">
+              <div className="flex flex-col items-center gap-1">
+                <div className="p-3 bg-yellow-500/15 border border-yellow-500/35 rounded-2xl text-yellow-400 mb-2">
+                  <Smartphone className="w-6 h-6 animate-bounce" />
+                </div>
+                <h4 className="text-lg font-black text-white uppercase tracking-wider font-mono">Mobile Save Assistant</h4>
+                <p className="text-[11px] text-gray-400 leading-relaxed font-sans mt-0.5">
+                  Standard program triggers can be strict inside sandbox iFrames. We have compiled your credential into a high-res image for seamless saving!
+                </p>
+              </div>
+
+              {/* High-res rendered image ready for long press */}
+              <div className="relative rounded-2xl overflow-hidden border border-yellow-500/30 shadow-[0_0_40px_rgba(219,175,66,0.2)] bg-black/50 p-1">
+                <img
+                  src={generatedImgUrl}
+                  alt="Elite Support Certificate"
+                  className="w-full h-auto object-contain rounded-xl select-all touch-auto"
+                  style={{ WebkitTouchCallout: 'default' }}
+                />
+              </div>
+
+              {/* Instructions and direct tools wrapper */}
+              <div className="p-4 bg-yellow-500/10 border border-[#dbaf42]/20 rounded-2xl flex flex-col gap-1.5 text-center">
+                <span className="text-[9px] font-mono text-yellow-400 font-black uppercase tracking-widest block">👇 GET IN YOUR GALLERY</span>
+                <p className="text-[11px] text-amber-100/90 font-medium leading-relaxed font-sans">
+                  Tap & hold (long press) the certificate image above, then select <span className="text-yellow-400 font-bold">"Save Image"</span> or <span className="text-yellow-400 font-bold">"Add to Photos"</span>.
+                </p>
+              </div>
+
+              {/* Safe action stack */}
+              <div className="flex flex-col gap-2">
+                {navigator.share && (
+                  <button
+                    onClick={triggerNativeShare}
+                    disabled={sharingNative}
+                    className="py-3 px-4 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all text-center w-full cursor-pointer border border-purple-400/30"
+                  >
+                    {sharingNative ? (
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <Share2 className="w-4 h-4" />
+                    )}
+                    Share to Device Apps
+                  </button>
+                )}
+
+                <button
+                  onClick={() => {
+                    // Manual fall back anchor download click
+                    const a = document.createElement('a');
+                    a.href = generatedImgUrl;
+                    a.download = `Certificate_Satyam_${name.trim().replace(/\s+/g, '_')}.png`;
+                    a.target = '_blank';
+                    a.click();
+                  }}
+                  className="py-3 px-4 rounded-xl bg-slate-900 hover:bg-slate-850 text-yellow-400 border border-yellow-500/20 font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all text-center w-full cursor-pointer"
+                >
+                  <Download className="w-4 h-4 text-yellow-300" />
+                  Try Direct Web Download
+                </button>
+
+                <button
+                  onClick={() => setMobileModalOpen(false)}
+                  className="text-xs text-gray-500 hover:text-gray-400 underline font-semibold transition-all mt-1 cursor-pointer"
+                >
+                  Close Assistant
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

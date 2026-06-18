@@ -38,6 +38,7 @@ import SpaceBackground from './components/SpaceBackground';
 import CursorTrail from './components/CursorTrail';
 import RunningButton from './components/RunningButton';
 import Certificate from './components/Certificate';
+import { EliteBadge } from './components/EliteBadge';
 import { subscribeToSupporters, registerSupporter, SupporterRecord } from './firebase';
 
 export default function App() {
@@ -1064,90 +1065,131 @@ export default function App() {
 
                     {/* Master Leaderboard records stream listing */}
                     <div className="space-y-3 max-h-[460px] overflow-y-auto pr-1.5 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
-                      
-                      {/* Rank #1: Satyam Himself (Persistent) */}
-                      <div className="flex items-center justify-between p-4 bg-yellow-500/10 border border-yellow-500/25 rounded-2xl shadow-sm">
-                        <div className="flex items-center gap-3 overflow-hidden">
-                          <span className="text-xl shrink-0">🥇</span>
-                          <div className="overflow-hidden">
-                            <div className="text-sm font-black text-yellow-400 uppercase flex items-center gap-1.5 font-display">
-                              Satyam Tiwari <span className="text-[9px] bg-yellow-400 text-slate-950 font-black px-1.5 py-0.2 rounded-full uppercase">Creator</span>
-                            </div>
-                            <span className="text-[9px] text-yellow-400/50 font-mono tracking-widest block mt-0.5">CREATOR • INFINITE RESPECT • PRESIDENT</span>
-                          </div>
-                        </div>
-                        <div className="text-right shrink-0">
-                          <span className="font-mono text-sm font-black text-yellow-400">999,999,999 respect</span>
-                        </div>
-                      </div>
-
-                      {/* Rank #2: Active candidate user status */}
-                      <motion.div
-                        animate={{ scale: [1, 1.005, 1] }}
-                        transition={{ duration: 3, repeat: Infinity }}
-                        className="flex items-center justify-between p-4 bg-cyan-500/10 border border-cyan-500/25 rounded-2xl shadow-sm"
-                      >
-                        <div className="flex items-center gap-3 overflow-hidden">
-                          <span className="text-xl shrink-0">🥈</span>
-                          <div className="overflow-hidden">
-                            <div className="text-sm font-black text-white uppercase flex items-center gap-1.5 font-display">
-                              {name} <span className="text-[9px] bg-cyan-400 text-slate-950 font-black px-1.5 py-0.2 rounded-full uppercase">YOU</span>
-                            </div>
-                            <span className="text-[9px] text-cyan-400/70 font-mono tracking-wider block mt-0.5">
-                              ID: {generatedCertId || 'FORGING...'} • {turns} TURNS • {email}
-                            </span>
-                          </div>
-                        </div>
-                        <div className="text-right shrink-0">
-                          <span className="font-mono text-sm font-black text-cyan-400">99,999,999 respect</span>
-                        </div>
-                      </motion.div>
-
-                      {/* Streamed synchronized Firestore supporters list */}
-                      {filteredSupporters.filter((s) => s.email !== email || !email).map((sup, idx) => {
-                        // Calculate visual index rank values nicely offsetted 
-                        const visualRank = idx + 3;
-                        let rankBadge = '🎖️';
-                        if (visualRank === 3) rankBadge = '🥉';
-
-                        return (
-                          <div key={sup.id || idx} className="flex items-center justify-between p-4 bg-purple-500/[0.03] border border-purple-500/10 hover:border-purple-500/25 rounded-2xl transition-all">
-                            <div className="flex items-center gap-3 overflow-hidden">
-                              <span className="text-lg shrink-0">{rankBadge}</span>
-                              <div className="overflow-hidden">
-                                <div className="text-sm font-bold text-gray-200 uppercase flex items-center gap-1.5 truncate">
-                                  {sup.name}
-                                </div>
-                                <span className="text-[9px] text-purple-400/70 font-mono truncate block mt-0.5">
-                                  {sup.certificateId} • {sup.turns} TURNS • {sup.email}
-                                </span>
+                      <AnimatePresence mode="popLayout">
+                        {/* Rank #1: Satyam Himself (Persistent) */}
+                        <motion.div
+                          layout
+                          key="satyam-creator"
+                          initial={{ opacity: 0, scale: 0.98, y: 15 }}
+                          animate={{ opacity: 1, scale: 1, y: 0 }}
+                          transition={{ type: 'spring', stiffness: 350, damping: 30 }}
+                          className="flex items-center justify-between p-4 bg-yellow-500/10 border border-yellow-500/25 rounded-2xl shadow-sm"
+                        >
+                          <div className="flex items-center gap-3 overflow-hidden">
+                            <span className="text-xl shrink-0">🥇</span>
+                            <div className="overflow-hidden">
+                              <div className="text-sm font-black text-yellow-400 uppercase flex items-center gap-2 font-display">
+                                Satyam Tiwari <span className="text-[9px] bg-yellow-400 text-slate-950 font-black px-1.5 py-0.2 rounded-full uppercase">Creator</span>
+                                <EliteBadge turns={0} isCreator={true} />
                               </div>
-                            </div>
-                            <div className="text-right shrink-0">
-                              <span className="font-mono text-xs font-bold text-purple-400">99,999 respect</span>
+                              <span className="text-[9px] text-yellow-400/50 font-mono tracking-widest block mt-0.5">CREATOR • INFINITE RESPECT • PRESIDENT</span>
                             </div>
                           </div>
-                        );
-                      })}
-
-                      {/* Empty search matches placeholder */}
-                      {filteredSupporters.length === 0 && (
-                        <div className="text-center py-10 text-gray-500 font-mono text-xs italic">
-                          No certified supporter record matching "{searchQuery}" found in database.
-                        </div>
-                      )}
-
-                      {/* Fictional static players representing elons etc */}
-                      <div className="flex items-center justify-between p-4 bg-slate-900/40 border border-white/5 rounded-2xl opacity-50">
-                        <div className="flex items-center gap-3">
-                          <span className="text-lg">👤</span>
-                          <div>
-                            <div className="text-xs font-bold text-gray-400 uppercase">Elon Musk</div>
-                            <span className="text-[9px] text-gray-600 font-mono">Attempted custom parameters override</span>
+                          <div className="text-right shrink-0">
+                            <span className="font-mono text-sm font-black text-yellow-400">999,999,999 respect</span>
                           </div>
-                        </div>
-                        <span className="font-mono text-xs text-gray-600 font-bold">12,040 respect</span>
-                      </div>
+                        </motion.div>
+
+                        {/* Rank #2: Active candidate user status */}
+                        <motion.div
+                          layout
+                          key="active-user-status"
+                          initial={{ opacity: 0, scale: 0.98, y: 15 }}
+                          animate={{ scale: [1, 1.005, 1], opacity: 1, y: 0 }}
+                          transition={{
+                            scale: { duration: 3, repeat: Infinity },
+                            y: { type: 'spring', stiffness: 350, damping: 30 },
+                            opacity: { duration: 0.3 },
+                            layout: { type: 'spring', stiffness: 350, damping: 30 }
+                          }}
+                          className="flex items-center justify-between p-4 bg-cyan-500/10 border border-cyan-500/25 rounded-2xl shadow-sm"
+                        >
+                          <div className="flex items-center gap-3 overflow-hidden">
+                            <span className="text-xl shrink-0">🥈</span>
+                            <div className="overflow-hidden">
+                              <div className="text-sm font-black text-white uppercase flex items-center gap-2 font-display animate-pulse-subtle">
+                                {name} <span className="text-[9px] bg-cyan-400 text-slate-950 font-black px-1.5 py-0.2 rounded-full uppercase">YOU</span>
+                                <EliteBadge turns={turns} />
+                              </div>
+                              <span className="text-[9px] text-cyan-400/70 font-mono tracking-wider block mt-0.5">
+                                ID: {generatedCertId || 'FORGING...'} • {turns} TURNS • {email}
+                              </span>
+                            </div>
+                          </div>
+                          <div className="text-right shrink-0">
+                            <span className="font-mono text-sm font-black text-cyan-400">99,999,999 respect</span>
+                          </div>
+                        </motion.div>
+
+                        {/* Streamed synchronized Firestore supporters list */}
+                        {filteredSupporters.filter((s) => s.email !== email || !email).map((sup, idx) => {
+                          // Calculate visual index rank values nicely offsetted 
+                          const visualRank = idx + 3;
+                          let rankBadge = '🎖️';
+                          if (visualRank === 3) rankBadge = '🥉';
+
+                          return (
+                            <motion.div
+                              layout
+                              key={sup.id || sup.name || `supporter-${idx}`}
+                              initial={{ opacity: 0, scale: 0.98, y: 15 }}
+                              animate={{ opacity: 1, scale: 1, y: 0 }}
+                              exit={{ opacity: 0, scale: 0.95 }}
+                              transition={{ type: 'spring', stiffness: 350, damping: 30 }}
+                              className="flex items-center justify-between p-4 bg-purple-500/[0.03] border border-purple-500/10 hover:border-purple-500/25 rounded-2xl transition-all"
+                            >
+                              <div className="flex items-center gap-3 overflow-hidden">
+                                <span className="text-lg shrink-0">{rankBadge}</span>
+                                <div className="overflow-hidden">
+                                  <div className="text-sm font-bold text-gray-200 uppercase flex items-center gap-2 truncate">
+                                    {sup.name}
+                                    <EliteBadge turns={sup.turns} />
+                                  </div>
+                                  <span className="text-[9px] text-purple-400/70 font-mono truncate block mt-0.5">
+                                    {sup.certificateId} • {sup.turns} TURNS • {sup.email}
+                                  </span>
+                                </div>
+                              </div>
+                              <div className="text-right shrink-0">
+                                <span className="font-mono text-xs font-bold text-purple-400">99,999 respect</span>
+                              </div>
+                            </motion.div>
+                          );
+                        })}
+
+                        {/* Empty search matches placeholder */}
+                        {filteredSupporters.length === 0 && (
+                          <motion.div
+                            layout
+                            key="no-matches"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="text-center py-10 text-gray-500 font-mono text-xs italic"
+                          >
+                            No certified supporter record matching "{searchQuery}" found in database.
+                          </motion.div>
+                        )}
+
+                        {/* Fictional static players representing elons etc */}
+                        <motion.div
+                          layout
+                          key="static-elon"
+                          initial={{ opacity: 0, scale: 0.98, y: 15 }}
+                          animate={{ opacity: 0.5, scale: 1, y: 0 }}
+                          transition={{ type: 'spring', stiffness: 350, damping: 30 }}
+                          className="flex items-center justify-between p-4 bg-slate-900/40 border border-white/5 rounded-2xl opacity-50"
+                        >
+                          <div className="flex items-center gap-3">
+                            <span className="text-lg">👤</span>
+                            <div>
+                              <div className="text-xs font-bold text-gray-400 uppercase">Elon Musk</div>
+                              <span className="text-[9px] text-gray-600 font-mono">Attempted custom parameters override</span>
+                            </div>
+                          </div>
+                          <span className="font-mono text-xs text-gray-600 font-bold">12,040 respect</span>
+                        </motion.div>
+                      </AnimatePresence>
 
                     </div>
                   </div>
